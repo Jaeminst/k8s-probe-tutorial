@@ -1,0 +1,121 @@
+$ k rollout history deployment/cozserver-deployment
+deployment.apps/cozserver-deployment 
+REVISION  CHANGE-CAUSE
+1         kubectl apply --cluster=minikube --filename=cozserver-deployment-v2.yaml --record=true
+2         kubectl apply --cluster=minikube --filename=cozserver-deployment-v3-probe.yaml --record=true
+
+
+$ k get all
+NAME                                       READY   STATUS    RESTARTS   AGE
+pod/cozserver-deployment-7b7545d86-htgzg   0/1     Running   0          2m9s
+pod/cozserver-deployment-7b7545d86-vcwm6   0/1     Running   0          2m9s
+pod/cozserver-deployment-b4848bfc7-g6ttb   1/1     Running   0          2m24s
+pod/cozserver-deployment-b4848bfc7-vqddg   1/1     Running   0          2m24s
+
+NAME                 TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)        AGE
+service/cozserver    LoadBalancer   10.99.236.232   10.99.236.232   80:31194/TCP   7m38s
+service/kubernetes   ClusterIP      10.96.0.1       <none>          443/TCP        10m
+
+NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/cozserver-deployment   2/3     2            2           2m24s
+
+NAME                                             DESIRED   CURRENT   READY   AGE
+replicaset.apps/cozserver-deployment-7b7545d86   2         2         0       2m9s
+replicaset.apps/cozserver-deployment-b4848bfc7   2         2         2       2m24s
+
+$ k get ep
+NAME         ENDPOINTS                         AGE
+cozserver    172.17.0.4:8080,172.17.0.6:8080   8m37s
+kubernetes   192.168.49.2:8443                 11m
+
+$ k describe deployments
+Name:                   cozserver-deployment
+Namespace:              default
+CreationTimestamp:      Mon, 25 Apr 2022 21:37:26 +0900
+Labels:                 app=cozserver
+Annotations:            deployment.kubernetes.io/revision: 2
+                        kubernetes.io/change-cause: kubectl apply --cluster=minikube --filename=cozserver-deployment-v3-probe.yaml --record=true
+Selector:               app=cozserver
+Replicas:               3 desired | 1 updated | 4 total | 3 available | 1 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        10
+RollingUpdateStrategy:  0 max unavailable, 1 max surge
+Pod Template:
+  Labels:  app=cozserver
+  Containers:
+   cozserver:
+    Image:        sebcontents/cozserver:3.0
+    Port:         8080/TCP
+    Host Port:    0/TCP
+    Readiness:    http-get http://:8080/ delay=0s timeout=1s period=1s #success=1 #failure=3
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    ReplicaSetUpdated
+OldReplicaSets:  cozserver-deployment-b4848bfc7 (3/3 replicas created)
+NewReplicaSet:   cozserver-deployment-7b7545d86 (1/1 replicas created)
+Events:
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  2m7s  deployment-controller  Scaled up replica set cozserver-deployment-b4848bfc7 to 3
+  Normal  ScalingReplicaSet  101s  deployment-controller  Scaled up replica set cozserver-deployment-7b7545d86 to 1
+
+
+$ k describe pod cozserver-deployment-7b7545d86-htgzg
+Name:         cozserver-deployment-7b7545d86-htgzg
+Namespace:    default
+Priority:     0
+Node:         minikube/192.168.49.2
+Start Time:   Mon, 25 Apr 2022 21:43:01 +0900
+Labels:       app=cozserver
+              pod-template-hash=7b7545d86
+Annotations:  <none>
+Status:       Running
+IP:           172.17.0.12
+IPs:
+  IP:           172.17.0.12
+Controlled By:  ReplicaSet/cozserver-deployment-7b7545d86
+Containers:
+  cozserver:
+    Container ID:   docker://bc0b1d87ddabb3bab31f0da1badbd07a86b7a938a0d7a6c61af8806cea510343
+    Image:          sebcontents/cozserver:3.0
+    Image ID:       docker-pullable://sebcontents/cozserver@sha256:fdf65785dfb65c6e87504c66245c342ca90a769268563c24f743e6805deb19ca
+    Port:           8080/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Mon, 25 Apr 2022 21:43:01 +0900
+    Ready:          False
+    Restart Count:  0
+    Readiness:      http-get http://:8080/ delay=0s timeout=1s period=1s #success=1 #failure=3
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-psgnv (ro)
+Conditions:
+  Type              Status
+  Initialized       True 
+  Ready             False 
+  ContainersReady   False 
+  PodScheduled      True 
+Volumes:
+  kube-api-access-psgnv:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age                    From               Message
+  ----     ------     ----                   ----               -------
+  Normal   Scheduled  6m33s                  default-scheduler  Successfully assigned default/cozserver-deployment-7b7545d86-htgzg to minikube
+  Normal   Pulled     6m33s                  kubelet            Container image "sebcontents/cozserver:3.0" already present on machine
+  Normal   Created    6m33s                  kubelet            Created container cozserver
+  Normal   Started    6m33s                  kubelet            Started container cozserver
+  Warning  Unhealthy  92s (x302 over 6m28s)  kubelet            Readiness probe failed: HTTP probe failed with statuscode: 500

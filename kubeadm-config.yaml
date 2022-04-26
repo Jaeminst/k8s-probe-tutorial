@@ -1,0 +1,15 @@
+# kubeadm-config.yaml
+kind: ClusterConfiguration
+apiVersion: kubeadm.k8s.io/v1beta3
+kubernetesVersion: v1.23.6
+---
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+cgroupDriver: systemd
+clusterDNS:
+- 10.96.0.10
+serializeImagePulls: false
+evictionHard:
+    memory.available: "200Mi"
+featureGates:
+  GRPCContainerProbe: true

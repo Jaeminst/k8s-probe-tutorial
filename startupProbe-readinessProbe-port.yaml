@@ -1,0 +1,41 @@
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    test: liveness
+  name: liveness-exec
+spec:
+  containers:
+  - name: liveness
+    image: k8s.gcr.io/busybox
+    args:   # 컨테이너 시작시 실행할 명령 인수들
+    - /bin/sh
+    - -c
+    - touch /tmp/healthy; sleep 30; rm -rf /tmp/healthy; sleep 600   # 컨테이너 시작후 /tmp/healthy를 생성; 30초 대기; 삭제
+  readinessProbe:
+    exec:
+      command:
+      - cat
+      - /tmp/healthy
+    initialDelaySeconds: 5
+    periodSeconds: 5
+  startupProbe:
+    exec:
+      command:
+      - cat
+      - /tmp/healthy
+    failureThreshold: 30
+    periodSeconds: 10
+
+# step1: pod 생성
+# $ kubectl apply -f livenessProbe-exec.yaml
+#
+# step2: 30초 이내 pod 활성상태 확인
+# $ kubectl describe pod liveness-exec
+#
+# step3: 30초 이후 pod 활성상태 확인
+# $ kubectl describe pod liveness-exec
+#
+# step4: 컨테이너 재시작 확인
+# $ kubectl get pod liveness-exec

@@ -1,0 +1,69 @@
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    test: liveness
+  name: liveness-http
+spec:
+  containers:
+  - name: liveness
+    image: k8s.gcr.io/liveness
+    args:
+    - /server   # /server 파일실행
+    livenessProbe:
+      httpGet:   # GET 요청
+        path: /healthz   # 요청 경로
+        port: 8080   # 요청 포트
+        httpHeaders:
+        - name: Custom-Header
+          value: Awesome
+      initialDelaySeconds: 3    # 해당 탐침을 수행하기 전 3초간 대기
+      periodSeconds: 3   # 3초마다 해당 탐침을 수행
+
+# step1: pod 생성
+# $ kubectl apply -f livenessProbe-http.yaml
+#
+# step2: 10초 이내 pod 활성상태 확인
+# $ kubectl describe pod liveness-http
+# Events:
+#   Type    Reason     Age   From               Message
+#   ----    ------     ----  ----               -------
+#   Normal  Scheduled  6s    default-scheduler  Successfully assigned default/liveness-http to minikube
+#   Normal  Pulling    5s    kubelet            Pulling image "k8s.gcr.io/liveness"
+#   Normal  Pulled     2s    kubelet            Successfully pulled image "k8s.gcr.io/liveness" in 2.634578449s
+#   Normal  Created    2s    kubelet            Created container liveness
+#   Normal  Started    1s    kubelet            Started container liveness
+#
+# step3: 10초 이후 pod 활성상태 확인
+# $ kubectl describe pod liveness-http
+# Events:
+#   Type     Reason     Age   From               Message
+#   ----     ------     ----  ----               -------
+#   Normal   Scheduled  15s   default-scheduler  Successfully assigned default/liveness-http to minikube
+#   Normal   Pulling    14s   kubelet            Pulling image "k8s.gcr.io/liveness"
+#   Normal   Pulled     11s   kubelet            Successfully pulled image "k8s.gcr.io/liveness" in 2.634578449s
+#   Normal   Created    11s   kubelet            Created container liveness
+#   Normal   Started    10s   kubelet            Started container liveness
+#   Warning  Unhealthy  0s    kubelet            Liveness probe failed: HTTP probe failed with statuscode: 500
+#
+# step4: 컨테이너 재시작 확인
+# $ kubectl get pod liveness-http
+# NAME            READY   STATUS    RESTARTS      AGE
+# liveness-http   1/1     Running   1 (15s ago)   36s
+
+
+
+# image: k8s.gcr.io/liveness
+# http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+#     duration := time.Now().Sub(started)
+#     if duration.Seconds() > 10 {
+#     # 10초가 지나면 상태 500을 반환
+#         w.WriteHeader(500)
+#         w.Write([]byte(fmt.Sprintf("error: %v", duration.Seconds())))
+#     } else {
+#         w.WriteHeader(200)
+#         w.Write([]byte("ok"))
+#     # 처음 10초 동안 상태 200을 반환
+#     }
+# })

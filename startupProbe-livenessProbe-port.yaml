@@ -1,0 +1,58 @@
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    test: liveness
+  name: liveness-http
+spec:
+  containers:
+  - name: liveness
+    image: k8s.gcr.io/liveness
+    args:
+    - /server   # /server 파일실행
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: liveness-port
+    failureThreshold: 1
+    periodSeconds: 10
+  startupProbe:
+    httpGet:
+      path: /healthz
+      port: liveness-port
+    failureThreshold: 30
+    periodSeconds: 10
+  ports:
+  - name: liveness-port
+    containerPort: 8080
+    hostPort: 8080
+
+
+
+# step1: pod 생성
+# $ kubectl apply -f livenessProbe-http.yaml
+#
+# step2: 10초 이내 pod 활성상태 확인
+# $ kubectl describe pod liveness-http
+#
+# step3: 10초 이후 pod 활성상태 확인
+# $ kubectl describe pod liveness-http
+#
+# step4: 컨테이너 재시작 확인
+# $ kubectl get pod liveness-http
+
+
+# image: k8s.gcr.io/liveness
+# http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+#     duration := time.Now().Sub(started)
+#     if duration.Seconds() > 10 {
+#     # 10초가 지나면 상태 500을 반환
+#         w.WriteHeader(500)
+#         w.Write([]byte(fmt.Sprintf("error: %v", duration.Seconds())))
+#     } else {
+#         w.WriteHeader(200)
+#         w.Write([]byte("ok"))
+#     # 처음 10초 동안 상태 200을 반환
+#     }
+# })

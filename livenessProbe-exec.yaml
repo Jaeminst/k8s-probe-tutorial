@@ -1,0 +1,55 @@
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    test: liveness
+  name: liveness-exec
+spec:
+  containers:
+  - name: liveness
+    image: k8s.gcr.io/busybox
+    args:   # 컨테이너 시작시 실행할 명령 인수들
+    - /bin/sh
+    - -c
+    - touch /tmp/healthy; sleep 30; rm -rf /tmp/healthy; sleep 600   # 컨테이너 시작후 /tmp/healthy를 생성; 30초 대기; 삭제
+    livenessProbe:  # 명령이 0이 아닌 값을 반환시 컨테이너를 재시작
+      exec:  # 해당 탐침 수행방법, 성공시 0을 반환
+        command:
+        - cat
+        - /tmp/healthy
+      initialDelaySeconds: 5    # 해당 탐침을 수행하기전 5초간 대기
+      periodSeconds: 5   # 5초마다 해당 탐침을 수행
+
+# step1: pod 생성
+# $ kubectl apply -f livenessProbe-exec.yaml
+#
+# step2: 30초 이내 pod 활성상태 확인
+# $ kubectl describe pod liveness-exec
+# Events:
+#   Type    Reason     Age   From               Message
+#   ----    ------     ----  ----               -------
+#   Normal  Scheduled  31s   default-scheduler  Successfully assigned default/liveness-exec to minikube
+#   Normal  Pulling    31s   kubelet            Pulling image "k8s.gcr.io/busybox"
+#   Normal  Pulled     28s   kubelet            Successfully pulled image "k8s.gcr.io/busybox" in 2.15898189s
+#   Normal  Created    28s   kubelet            Created container liveness
+#   Normal  Started    28s   kubelet            Started container liveness
+#
+# step3: 30초 이후 pod 활성상태 확인
+# $ kubectl describe pod liveness-exec
+# Events:
+#   Type     Reason     Age                From               Message
+#   ----     ------     ----               ----               -------
+#   Normal   Scheduled  78s                default-scheduler  Successfully assigned default/liveness-exec to minikube
+#   Normal   Pulled     75s                kubelet            Successfully pulled image "k8s.gcr.io/busybox" in 2.15898189s
+#   Warning  Unhealthy  33s (x3 over 43s)  kubelet            Liveness probe failed: cat: can't open '/tmp/healthy': No such file or directory
+#   Normal   Killing    33s                kubelet            Container liveness failed liveness probe, will be restarted
+#   Normal   Pulling    3s (x2 over 78s)   kubelet            Pulling image "k8s.gcr.io/busybox"
+#   Normal   Pulled     2s                 kubelet            Successfully pulled image "k8s.gcr.io/busybox" in 1.581743405s
+#   Normal   Created    1s (x2 over 75s)   kubelet            Created container liveness
+#   Normal   Started    1s (x2 over 75s)   kubelet            Started container liveness
+#
+# step4: 컨테이너 재시작 확인
+# $ k get pod liveness-exec
+# NAME            READY   STATUS    RESTARTS   AGE
+# liveness-exec   1/1     Running   0          76s

@@ -1,0 +1,35 @@
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+apiVersion: v1
+kind: Pod
+metadata:
+  name: goproxy
+  labels:
+    app: goproxy
+spec:
+  containers:
+  - name: goproxy
+    image: k8s.gcr.io/goproxy:0.1
+    ports:
+    - containerPort: 8080
+    readinessProbe:
+      tcpSocket:   # 컨테이너 시작시 5초 대기 후, 컨테이너 port 8080에 tcp 연결 시도하고 10초마다 수행
+        port: 8080
+      initialDelaySeconds: 5    # 해당 탐침을 수행하기 전 5초간 대기
+      periodSeconds: 10   # 10초마다 해당 탐침을 수행
+    livenessProbe:   # 컨테이너 시작시 15초 대기 후, 컨테이너 port 8080에 tcp 연결 시도하고 20초마다 수행
+      tcpSocket:
+        port: 8080
+      initialDelaySeconds: 15    # 해당 탐침을 수행하기 전 15초간 대기
+      periodSeconds: 20   # 20초마다 해당 탐침을 수행
+
+# step1: pod 생성
+# $ kubectl apply -f livenessProbe-readinessProbe-tcp.yaml
+#
+# step2: 15초 이내 pod 활성상태 확인
+# $ kubectl describe pod goproxy
+#
+# step3: 15초 이후 pod 활성상태 확인
+# $ kubectl describe pod goproxy
+#
+# step4: 컨테이너 재시작 확인
+# $ kubectl get pod goproxy
